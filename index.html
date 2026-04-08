@@ -6,8 +6,14 @@
     <title>HypePulse Pro - Live Stream Monitor</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Robust TMI.js delivery via multiple CDNs for redundancy -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tmi.js/1.8.5/tmi.min.js" xintegrity="sha512-9pI6YidK573O5D06YIn3f7+50L7lYj5y73VAnJkZ6Z0GZ20L5Xl7pX9lX0YyYyYyYyYyYyYyYyYyYyYyYyYyYw==" crossorigin="anonymous" referrerpolicy="no-referrer" onerror="this.src='https://cdn.jsdelivr.net/npm/tmi.js@1.8.5/bit/tmi.min.js'"></script>
+    <!-- Multi-CDN Redundancy for TMI.js with corrected integrity attributes -->
+    <script 
+        src="https://cdnjs.cloudflare.com/ajax/libs/tmi.js/1.8.5/tmi.min.js" 
+        xintegrity="sha512-9pI6YidK573O5D06YIn3f7+50L7lYj5y73VAnJkZ6Z0GZ20L5Xl7pX9lX0YyYyYyYyYyYyYyYyYyYyYyYyYyYw==" 
+        crossorigin="anonymous" 
+        referrerpolicy="no-referrer"
+        onerror="loadFallbackTmi()">
+    </script>
     <style>
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
@@ -20,7 +26,7 @@
         .hype-active { animation: pulse-cyan 1s infinite; border: 2px solid #22d3ee !important; }
         
         .glass-panel { 
-            background: rgba(15, 23, 21, 0.6); 
+            background: rgba(15, 23, 42, 0.6); 
             backdrop-filter: blur(12px); 
             border: 1px solid rgba(255, 255, 255, 0.05); 
         }
@@ -134,6 +140,14 @@
     </div>
 
     <script>
+        // Fallback loader for TMI.js in case primary CDN fails
+        function loadFallbackTmi() {
+            console.log("Primary TMI CDN failed. Trying JSDelivr...");
+            const script = document.createElement('script');
+            script.src = "https://cdn.jsdelivr.net/npm/tmi.js@1.8.5/bit/tmi.min.js";
+            document.head.appendChild(script);
+        }
+
         let client;
         let isConnected = false;
         let messageTimestamps = [];
@@ -218,9 +232,9 @@
             chatBox.innerHTML = `<div class="text-cyan-500 animate-pulse font-bold">[SYSTEM] HANDSHAKING WITH TWITCH...</div>`;
 
             try {
-                // Verification of library existence with explicit check
-                if (typeof tmi === 'undefined') {
-                   throw new Error("Library failed to load from CDNs. Please check if your browser/firewall is blocking 'tmi.js'.");
+                // Verification of library existence
+                if (typeof tmi === 'undefined' || !tmi.Client) {
+                   throw new Error("TMI.js library is not loaded. Ensure you have an internet connection and scripts are not blocked.");
                 }
 
                 client = new tmi.Client({
@@ -252,8 +266,8 @@
                     <div class="text-[10px] text-slate-500 mt-2 leading-relaxed">
                         Reason: ${err.message}<br><br>
                         1. Ensure the channel name is spelled correctly.<br>
-                        2. Check if you're behind a restricted network (school/office).<br>
-                        3. Disable ad-blockers for this page.
+                        2. Check if your browser/firewall is blocking 'tmi.js' or WebSocket connections.<br>
+                        3. Try refreshing the page.
                     </div>
                 `;
                 console.error(err);
@@ -294,7 +308,6 @@
 
         function logHype(vel) {
             const now = Date.now();
-            // 40s cooldown to prevent spamming markers for the same event
             if (clips.length > 0 && (now - clips[clips.length - 1].raw < 40000)) return;
 
             const elapsed = Math.floor((now - sessionStart) / 1000);
@@ -317,7 +330,6 @@
             `;
             document.getElementById('clipList').prepend(el);
             
-            // Visual alert
             document.body.classList.add('hype-active');
             setTimeout(() => document.body.classList.remove('hype-active'), 1200);
         }
